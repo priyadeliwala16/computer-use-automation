@@ -1,0 +1,12 @@
+{
+  "app": "saucedemo",
+  "allowedDomains": ["www.saucedemo.com", "saucedemo.com"],
+  "allowedActionTypes": ["click", "type", "select", "navigate", "extract", "waitFor"],
+  "riskyControls": [
+    {
+      "description": "Finalizing/placing an order is irreversible in a real back-office system.",
+      "role": "button",
+      "namePattern": "^Finish$"
+    }
+  ]
+}

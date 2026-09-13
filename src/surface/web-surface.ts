@@ -7,6 +7,13 @@ const DEFAULT_TIMEOUT_MS = 10_000;
 /** Grace window to detect a navigation caused by an action. See `settleAfterAction` for why
  *  this can't just be a `waitForLoadState` check performed after the fact. */
 const NAVIGATION_GRACE_MS = 800;
+/** Some routes on the target app render via client-side transitions (URL changes via a
+ *  history-API push, followed by an animated drawer/panel mount) rather than a full document
+ *  load — `domcontentloaded`/`load` fire instantly for these and don't capture the animation.
+ *  A small fixed settle buffer after every action is a deliberate, documented trade-off: it's
+ *  simpler than polling for transition/animation-end events per element, at the cost of a fixed
+ *  per-action latency. See REPORT.md's determinism section for the fuller discussion. */
+const SETTLE_BUFFER_MS = 300;
 
 export interface WebSurfaceOptions {
   headless?: boolean;
@@ -181,5 +188,6 @@ export class WebSurface implements Surface {
     await action();
     await navigated;
     await this.page.waitForLoadState("domcontentloaded").catch(() => undefined);
+    await this.page.waitForTimeout(SETTLE_BUFFER_MS);
   }
 }

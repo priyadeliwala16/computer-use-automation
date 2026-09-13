@@ -36,6 +36,16 @@ const DEFAULT_PREFERENCE: LocatorStrategy[] = ["role", "testId", "text", "css"];
  * Builds the full candidate locator for a perceived node. Called once, at the moment an action
  * is executed during discovery — never reconstructed later from a possibly-stale page.
  */
+/** Accessible names that embed a mutable count/state token (e.g. "Cart, 1 items") are common on
+ *  modern web apps (badge counts, "N results", timestamps) and will silently stop matching once
+ *  that state differs from what was recorded — a role+name match that "sometimes" fails is worse
+ *  than one that predictably falls back. We deprioritize (never discard) `role` for these,
+ *  observed directly against the target app's cart icon, whose name changes between "Cart,
+ *  empty" and "Cart, N items". */
+function looksStateDependent(name: string | undefined): boolean {
+  return Boolean(name && /\d/.test(name));
+}
+
 export function buildLocatorSpec(
   node: Pick<SnapshotNode, "role" | "name" | "testId" | "text" | "cssPath">,
   preference: LocatorStrategy[] = DEFAULT_PREFERENCE,
@@ -46,9 +56,14 @@ export function buildLocatorSpec(
   if (node.text && node.text.length <= 80) available.push("text");
   available.push("css"); // always available
 
+  const effectivePreference =
+    looksStateDependent(node.name) && available.includes("testId")
+      ? [...preference.filter((s) => s !== "role"), "role" as LocatorStrategy]
+      : preference;
+
   const fallbackOrder = [
-    ...preference.filter((s) => available.includes(s)),
-    ...available.filter((s) => !preference.includes(s)),
+    ...effectivePreference.filter((s) => available.includes(s)),
+    ...available.filter((s) => !effectivePreference.includes(s)),
   ];
 
   return {

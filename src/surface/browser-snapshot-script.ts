@@ -37,6 +37,16 @@ export function collectSnapshotNodes(maxNodes: number): RawSnapshotNode[] {
     const style = window.getComputedStyle(el);
     if (style.visibility === "hidden" || style.display === "none") return false;
     if (parseFloat(style.opacity || "1") === 0) return false;
+    // Off-canvas menus/drawers are frequently hidden via a CSS transform (e.g.
+    // translateX(-100%)) rather than display:none — those still report a non-zero
+    // getBoundingClientRect, so we additionally require the element to actually intersect the
+    // viewport. Without this, a closed hamburger menu's items collide with same-named visible
+    // controls (observed directly against the target app: a closed sidebar "All Items" link and
+    // the open cart icon both passed the naive check and were assigned duplicate refs).
+    const viewportW = window.innerWidth || document.documentElement.clientWidth;
+    const viewportH = window.innerHeight || document.documentElement.clientHeight;
+    const intersectsViewport = rect.bottom > 0 && rect.right > 0 && rect.top < viewportH && rect.left < viewportW;
+    if (!intersectsViewport) return false;
     return true;
   }
 
@@ -149,7 +159,12 @@ export function collectSnapshotNodes(maxNodes: number): RawSnapshotNode[] {
 
   const INTERACTIVE_SELECTOR =
     'a[href], button, input, select, textarea, [role="button"], [role="link"], [role="checkbox"], [role="radio"], [role="tab"], [onclick]';
-  const TEXT_SELECTOR = 'h1, h2, h3, h4, h5, h6, [role="alert"]';
+  // Headings/alerts are semantically informative on any app. `[data-test]`/`[data-testid]`/
+  // `[data-qa]` is a pragmatic addition specific to apps that already tag elements for
+  // automation: a labeled-but-non-interactive node (e.g. an order total, a summary row) is
+  // exactly the kind of element a capability needs to `extract` from, and the test-id is a
+  // strong signal that the app's own authors considered it a meaningful, addressable node.
+  const TEXT_SELECTOR = 'h1, h2, h3, h4, h5, h6, [role="alert"], [data-test], [data-testid], [data-qa]';
 
   document.querySelectorAll(INTERACTIVE_SELECTOR).forEach((el) => pushNode(el));
   document.querySelectorAll(TEXT_SELECTOR).forEach((el) => pushNode(el));

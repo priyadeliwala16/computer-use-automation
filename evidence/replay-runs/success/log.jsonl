@@ -1,0 +1,14 @@
+{"timestamp":"2026-09-14T03:51:06.113Z","stepId":"type-username","action":"type","ok":true,"event":"step"}
+{"timestamp":"2026-09-14T03:51:07.255Z","stepId":"type-password","action":"type","ok":true,"event":"step"}
+{"timestamp":"2026-09-14T03:51:07.576Z","stepId":"click-login","action":"click","ok":true,"event":"step"}
+{"timestamp":"2026-09-14T03:51:08.693Z","stepId":"click-add-to-cart-backpack","action":"click","ok":true,"event":"step"}
+{"timestamp":"2026-09-14T03:51:09.021Z","stepId":"click-cart-icon","action":"click","ok":true,"event":"step"}
+{"timestamp":"2026-09-14T03:51:09.348Z","stepId":"click-checkout","action":"click","ok":true,"event":"step"}
+{"timestamp":"2026-09-14T03:51:10.461Z","stepId":"type-first-name","action":"type","ok":true,"event":"step"}
+{"timestamp":"2026-09-14T03:51:11.578Z","stepId":"type-last-name","action":"type","ok":true,"event":"step"}
+{"timestamp":"2026-09-14T03:51:12.693Z","stepId":"type-postal-code","action":"type","ok":true,"event":"step"}
+{"timestamp":"2026-09-14T03:51:13.014Z","stepId":"click-continue","action":"click","ok":true,"event":"step"}
+{"timestamp":"2026-09-14T03:51:13.021Z","stepId":"extract-item-total","action":"extract","ok":true,"event":"step"}
+{"timestamp":"2026-09-14T03:51:13.026Z","stepId":"extract-tax","action":"extract","ok":true,"event":"step"}
+{"timestamp":"2026-09-14T03:51:13.030Z","stepId":"extract-total","action":"extract","ok":true,"event":"step"}
+{"timestamp":"2026-09-14T03:51:13.072Z","event":"run_finished","kind":"success","outputs":{"itemTotalText":"Item total: $29.99","taxText":"Tax: $2.40","totalText":"Total: $32.39"},"evidenceId":"evidence/replay-runs/success/screenshots/001-success.png"}

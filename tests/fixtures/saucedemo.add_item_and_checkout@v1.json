@@ -1,0 +1,300 @@
+{
+  "id": "saucedemo.add_item_and_checkout",
+  "version": 1,
+  "schemaVersion": "1.0",
+  "name": "Add Sauce Labs Backpack to cart and reach checkout overview",
+  "description": "Logs in, adds the 'Sauce Labs Backpack' item to the cart, fills the checkout information form, and reaches the order review (checkout overview) page — stopping short of placing the order, which is a separate, risk-gated action. Returns the displayed order totals.",
+  "target": {
+    "app": "saucedemo",
+    "baseUrl": "https://www.saucedemo.com",
+    "surfaceType": "web"
+  },
+  "provenance": {
+    "discoveryRunId": "hand-authored-fixture-for-replay-engine-development",
+    "recordedAt": "1970-01-01T00:00:00.000Z",
+    "model": "n/a — see README.md provenance note"
+  },
+  "inputs": [
+    {
+      "name": "username",
+      "type": "string",
+      "required": true,
+      "redact": true,
+      "description": "Login username for the target account."
+    },
+    {
+      "name": "password",
+      "type": "string",
+      "required": true,
+      "redact": true,
+      "description": "Login password for the target account."
+    },
+    {
+      "name": "firstName",
+      "type": "string",
+      "required": true,
+      "redact": false,
+      "description": "Checkout billing first name.",
+      "example": "Ada"
+    },
+    {
+      "name": "lastName",
+      "type": "string",
+      "required": true,
+      "redact": false,
+      "description": "Checkout billing last name.",
+      "example": "Lovelace"
+    },
+    {
+      "name": "postalCode",
+      "type": "string",
+      "required": true,
+      "redact": false,
+      "description": "Checkout billing postal/zip code. An empty or invalid value surfaces a 'validation_error' business outcome rather than a crash.",
+      "example": "94107"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "itemTotalText",
+      "type": "string",
+      "fromStepId": "extract-item-total",
+      "description": "The 'Item total' line as displayed on the checkout overview page."
+    },
+    {
+      "name": "taxText",
+      "type": "string",
+      "fromStepId": "extract-tax",
+      "description": "The 'Tax' line as displayed on the checkout overview page."
+    },
+    {
+      "name": "totalText",
+      "type": "string",
+      "fromStepId": "extract-total",
+      "description": "The 'Total' line as displayed on the checkout overview page."
+    }
+  ],
+  "steps": [
+    {
+      "id": "type-username",
+      "action": "type",
+      "target": {
+        "role": "textbox",
+        "name": "Username",
+        "testId": "username",
+        "fallbackOrder": [
+          "role",
+          "testId"
+        ]
+      },
+      "value": {
+        "kind": "param",
+        "param": "username"
+      },
+      "locatorReasoning": "Accessible name 'Username' comes from the field's placeholder and is stable; role+name preferred, testId as a strong fallback."
+    },
+    {
+      "id": "type-password",
+      "action": "type",
+      "target": {
+        "role": "textbox",
+        "name": "Password",
+        "testId": "password",
+        "fallbackOrder": [
+          "role",
+          "testId"
+        ]
+      },
+      "value": {
+        "kind": "param",
+        "param": "password"
+      },
+      "locatorReasoning": "Same rationale as username: stable placeholder-derived accessible name."
+    },
+    {
+      "id": "click-login",
+      "action": "click",
+      "target": {
+        "role": "button",
+        "name": "Login",
+        "testId": "login-button",
+        "fallbackOrder": [
+          "role",
+          "testId"
+        ]
+      },
+      "locatorReasoning": "Accessible name 'Login' is derived from the submit input's `value` attribute (not text content, since <input> elements are self-closing) — stable across reloads.",
+      "expected": [
+        {
+          "description": "Login rejected because the account has been locked out by the site admin.",
+          "detect": {
+            "kind": "textVisible",
+            "value": "Sorry, this user has been locked out"
+          },
+          "classification": "business_outcome",
+          "outcomeCode": "user_locked_out"
+        }
+      ]
+    },
+    {
+      "id": "click-add-to-cart-backpack",
+      "action": "click",
+      "target": {
+        "role": "button",
+        "name": "Add to cart",
+        "testId": "add-to-cart-sauce-labs-backpack",
+        "fallbackOrder": [
+          "testId",
+          "role"
+        ]
+      },
+      "locatorReasoning": "IMPORTANT: every product tile exposes an 'Add to cart' button with the identical role and accessible name — role+name alone resolves to 7 elements on this page, confirmed directly against the live app. testId is unique per product and is therefore preferred over the usual role-first default."
+    },
+    {
+      "id": "click-cart-icon",
+      "action": "click",
+      "target": {
+        "role": "button",
+        "name": "Cart, 1 items",
+        "testId": "shopping-cart-link",
+        "fallbackOrder": [
+          "testId",
+          "role"
+        ]
+      },
+      "locatorReasoning": "Accessible name encodes the live cart count ('Cart, N items') and is therefore state-dependent — confirmed it reads 'Cart, empty' before any item is added. testId is stable regardless of cart contents and is preferred."
+    },
+    {
+      "id": "click-checkout",
+      "action": "click",
+      "target": {
+        "role": "button",
+        "name": "Checkout",
+        "testId": "checkout",
+        "fallbackOrder": [
+          "role",
+          "testId"
+        ]
+      },
+      "locatorReasoning": "Unique, stable accessible name on the cart page."
+    },
+    {
+      "id": "type-first-name",
+      "action": "type",
+      "target": {
+        "role": "textbox",
+        "name": "First Name",
+        "testId": "firstName",
+        "fallbackOrder": [
+          "role",
+          "testId"
+        ]
+      },
+      "value": {
+        "kind": "param",
+        "param": "firstName"
+      }
+    },
+    {
+      "id": "type-last-name",
+      "action": "type",
+      "target": {
+        "role": "textbox",
+        "name": "Last Name",
+        "testId": "lastName",
+        "fallbackOrder": [
+          "role",
+          "testId"
+        ]
+      },
+      "value": {
+        "kind": "param",
+        "param": "lastName"
+      }
+    },
+    {
+      "id": "type-postal-code",
+      "action": "type",
+      "target": {
+        "role": "textbox",
+        "name": "Zip/Postal Code",
+        "testId": "postalCode",
+        "fallbackOrder": [
+          "role",
+          "testId"
+        ]
+      },
+      "value": {
+        "kind": "param",
+        "param": "postalCode"
+      }
+    },
+    {
+      "id": "click-continue",
+      "action": "click",
+      "target": {
+        "testId": "continue",
+        "fallbackOrder": [
+          "testId"
+        ]
+      },
+      "locatorReasoning": "No usable accessible name was observed for this control (neither a computed accessible name nor text content) — this app doesn't consistently expose one here, which is exactly the kind of gap the brief calls out for legacy/uncooperative surfaces. testId is the only reliable signal for this element; documented rather than silently worked around.",
+      "expected": [
+        {
+          "description": "Checkout info form rejected due to a missing/invalid required field.",
+          "detect": {
+            "kind": "textVisible",
+            "value": "Postal Code is required"
+          },
+          "classification": "business_outcome",
+          "outcomeCode": "validation_error"
+        }
+      ]
+    },
+    {
+      "id": "extract-item-total",
+      "action": "extract",
+      "target": {
+        "testId": "subtotal-label",
+        "fallbackOrder": [
+          "testId",
+          "text"
+        ]
+      }
+    },
+    {
+      "id": "extract-tax",
+      "action": "extract",
+      "target": {
+        "testId": "tax-label",
+        "fallbackOrder": [
+          "testId",
+          "text"
+        ]
+      }
+    },
+    {
+      "id": "extract-total",
+      "action": "extract",
+      "target": {
+        "testId": "total-label",
+        "fallbackOrder": [
+          "testId",
+          "text"
+        ]
+      }
+    }
+  ],
+  "checkpoint": {
+    "description": "Reached the checkout overview / order review page.",
+    "assertion": {
+      "kind": "urlContains",
+      "value": "checkout-step-two.html"
+    }
+  },
+  "policy": {
+    "riskLevel": "safe",
+    "requiresApproval": false
+  },
+  "status": "approved"
+}

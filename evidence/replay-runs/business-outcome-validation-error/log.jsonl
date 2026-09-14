@@ -1,0 +1,12 @@
+{"timestamp":"2026-09-14T03:51:31.161Z","stepId":"type-username","action":"type","ok":true,"event":"step"}
+{"timestamp":"2026-09-14T03:51:32.315Z","stepId":"type-password","action":"type","ok":true,"event":"step"}
+{"timestamp":"2026-09-14T03:51:32.635Z","stepId":"click-login","action":"click","ok":true,"event":"step"}
+{"timestamp":"2026-09-14T03:51:33.753Z","stepId":"click-add-to-cart-backpack","action":"click","ok":true,"event":"step"}
+{"timestamp":"2026-09-14T03:51:34.084Z","stepId":"click-cart-icon","action":"click","ok":true,"event":"step"}
+{"timestamp":"2026-09-14T03:51:34.408Z","stepId":"click-checkout","action":"click","ok":true,"event":"step"}
+{"timestamp":"2026-09-14T03:51:35.518Z","stepId":"type-first-name","action":"type","ok":true,"event":"step"}
+{"timestamp":"2026-09-14T03:51:36.634Z","stepId":"type-last-name","action":"type","ok":true,"event":"step"}
+{"timestamp":"2026-09-14T03:51:37.753Z","stepId":"type-postal-code","action":"type","ok":true,"event":"step"}
+{"timestamp":"2026-09-14T03:51:38.865Z","stepId":"click-continue","action":"click","ok":true,"event":"step"}
+{"timestamp":"2026-09-14T03:51:38.872Z","stepId":"click-continue","action":"click","ok":true,"matchedExpected":{"classification":"business_outcome","outcomeCode":"validation_error"},"event":"step"}
+{"timestamp":"2026-09-14T03:51:38.919Z","event":"run_finished","kind":"business_outcome","outcomeCode":"validation_error","description":"Checkout info form rejected due to a missing/invalid required field.","stepId":"click-continue","evidenceId":"evidence/replay-runs/business-outcome-validation-error/screenshots/001-business_outcome-validation_error.png"}

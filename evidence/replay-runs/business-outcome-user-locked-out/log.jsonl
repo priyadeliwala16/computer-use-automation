@@ -1,0 +1,5 @@
+{"timestamp":"2026-09-14T03:51:51.100Z","stepId":"type-username","action":"type","ok":true,"event":"step"}
+{"timestamp":"2026-09-14T03:51:52.256Z","stepId":"type-password","action":"type","ok":true,"event":"step"}
+{"timestamp":"2026-09-14T03:51:53.365Z","stepId":"click-login","action":"click","ok":true,"event":"step"}
+{"timestamp":"2026-09-14T03:51:53.371Z","stepId":"click-login","action":"click","ok":true,"matchedExpected":{"classification":"business_outcome","outcomeCode":"user_locked_out"},"event":"step"}
+{"timestamp":"2026-09-14T03:51:53.421Z","event":"run_finished","kind":"business_outcome","outcomeCode":"user_locked_out","description":"Login rejected because the account has been locked out by the site admin.","stepId":"click-login","evidenceId":"evidence/replay-runs/business-outcome-user-locked-out/screenshots/001-business_outcome-user_locked_out.png"}

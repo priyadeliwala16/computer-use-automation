@@ -35,15 +35,23 @@ async function main() {
     }
 
     console.log(`\n[act] type username -> ref=${usernameField.ref}`);
-    const r1 = await surface.act({ type: "type", ref: usernameField.ref, text: "standard_user" });
+    const r1 = await surface.act({
+      type: "type",
+      target: { kind: "ref", ref: usernameField.ref },
+      text: "standard_user",
+    });
     console.log("  result:", r1);
 
     console.log(`[act] type password -> ref=${passwordField.ref}`);
-    const r2 = await surface.act({ type: "type", ref: passwordField.ref, text: "secret_sauce" });
+    const r2 = await surface.act({
+      type: "type",
+      target: { kind: "ref", ref: passwordField.ref },
+      text: "secret_sauce",
+    });
     console.log("  result:", r2);
 
     console.log(`[act] click login -> ref=${loginButton.ref}`);
-    const r3 = await surface.act({ type: "click", ref: loginButton.ref });
+    const r3 = await surface.act({ type: "click", target: { kind: "ref", ref: loginButton.ref } });
     console.log("  result:", r3);
 
     const obs2 = await surface.observe();

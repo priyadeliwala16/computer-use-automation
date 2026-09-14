@@ -110,7 +110,15 @@ function tryStrategy(page: Page, spec: LocatorSpec, strategy: LocatorStrategy): 
         ? page.getByRole(spec.role as Parameters<Page["getByRole"]>[0], { name: spec.name })
         : undefined;
     case "testId":
-      return spec.testId ? page.getByTestId(spec.testId) : undefined;
+      // Deliberately not page.getByTestId(), which only matches Playwright's single configured
+      // attribute (default: data-testid). Our perception layer (browser-snapshot-script.ts)
+      // recognizes data-testid/data-test/data-qa as equally valid conventions — matching all
+      // three here keeps that consistent, rather than silently only working for one of them.
+      return spec.testId
+        ? page.locator(
+            `[data-testid="${spec.testId}"], [data-test="${spec.testId}"], [data-qa="${spec.testId}"]`,
+          )
+        : undefined;
     case "text":
       return spec.text ? page.getByText(spec.text, { exact: false }) : undefined;
     case "css":

@@ -3,8 +3,17 @@ dist/
 .env
 *.log
 .DS_Store
-/evidence/**/screenshots/*.png
-!/evidence/**/screenshots/.gitkeep
 coverage/
 playwright-report/
 test-results/
+
+# `discover`/`replay` write a timestamped/uuid-named evidence bundle here on every local run by
+# default — that's noise, not a deliverable, so it's ignored. The curated bundles assembled for
+# submission (see evidence/README.md) are real screenshots + logs from real runs and are
+# committed explicitly via the negation patterns below — do NOT re-add a blanket
+# `screenshots/*.png` ignore here, or the one thing §3.5/§6's evidence requirement asks for
+# (real screenshots in the repo, not just a description of them) silently stops being true.
+/evidence/*/
+!/evidence/artifacts/
+!/evidence/discovery-run/
+!/evidence/replay-runs/

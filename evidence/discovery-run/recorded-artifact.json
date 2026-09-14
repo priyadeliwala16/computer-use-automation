@@ -1,0 +1,269 @@
+{
+  "id": "saucedemo.add_item_and_checkout",
+  "version": 1,
+  "schemaVersion": "1.0",
+  "name": "saucedemo.add_item_and_checkout",
+  "description": "Log in, add the Sauce Labs Backpack to the cart, proceed to checkout, fill in the shipping information, and reach the checkout overview (review) page showing the order total.",
+  "target": {
+    "app": "saucedemo",
+    "baseUrl": "https://www.saucedemo.com",
+    "surfaceType": "web"
+  },
+  "provenance": {
+    "discoveryRunId": "72f2d1ca-62f6-4c53-85b0-0d4f2f7ee417",
+    "recordedAt": "2026-09-14T04:41:27.251Z",
+    "model": "claude-sonnet-4-5-20250929"
+  },
+  "inputs": [
+    {
+      "name": "username",
+      "type": "string",
+      "required": true,
+      "redact": false,
+      "description": "Value used for \"username\" (captured during discovery).",
+      "example": "standard_user"
+    },
+    {
+      "name": "password",
+      "type": "string",
+      "required": true,
+      "redact": true,
+      "description": "Value used for \"password\" (captured during discovery)."
+    },
+    {
+      "name": "firstName",
+      "type": "string",
+      "required": true,
+      "redact": false,
+      "description": "Value used for \"firstName\" (captured during discovery).",
+      "example": "Ada"
+    },
+    {
+      "name": "lastName",
+      "type": "string",
+      "required": true,
+      "redact": false,
+      "description": "Value used for \"lastName\" (captured during discovery).",
+      "example": "Lovelace"
+    },
+    {
+      "name": "postalCode",
+      "type": "string",
+      "required": true,
+      "redact": false,
+      "description": "Value used for \"postalCode\" (captured during discovery).",
+      "example": "94107"
+    }
+  ],
+  "outputs": [],
+  "steps": [
+    {
+      "id": "step-1-type",
+      "action": "type",
+      "target": {
+        "role": "textbox",
+        "name": "Username",
+        "testId": "username",
+        "css": "#user-name",
+        "fallbackOrder": [
+          "role",
+          "testId",
+          "css"
+        ]
+      },
+      "value": {
+        "kind": "param",
+        "param": "username"
+      },
+      "locatorReasoning": "First step is to log in. I need to enter the username \"standard_user\" in the username field.",
+      "expected": []
+    },
+    {
+      "id": "step-2-type",
+      "action": "type",
+      "target": {
+        "role": "textbox",
+        "name": "Password",
+        "testId": "password",
+        "css": "#password",
+        "fallbackOrder": [
+          "role",
+          "testId",
+          "css"
+        ]
+      },
+      "value": {
+        "kind": "param",
+        "param": "password"
+      },
+      "locatorReasoning": "Now I need to enter the password \"[REDACTED:password]\" in the password field to complete the login credentials.",
+      "expected": []
+    },
+    {
+      "id": "step-3-click",
+      "action": "click",
+      "target": {
+        "role": "button",
+        "name": "Login",
+        "testId": "login-button",
+        "css": "#login-button",
+        "fallbackOrder": [
+          "role",
+          "testId",
+          "css"
+        ]
+      },
+      "locatorReasoning": "Both username and password are filled in. Now I need to click the Login button to proceed.",
+      "expected": []
+    },
+    {
+      "id": "step-4-click",
+      "action": "click",
+      "target": {
+        "role": "button",
+        "name": "Add to cart",
+        "testId": "add-to-cart-sauce-labs-backpack",
+        "text": "Add to cart",
+        "css": "#add-to-cart-sauce-labs-backpack",
+        "fallbackOrder": [
+          "role",
+          "testId",
+          "text",
+          "css"
+        ]
+      },
+      "locatorReasoning": "I'm now logged in and on the inventory page. I need to add the Sauce Labs Backpack to the cart. The first \"Add to cart\" button (e6) corresponds to the Sauce Labs Backpack item which is the first product shown.",
+      "expected": []
+    },
+    {
+      "id": "step-5-click",
+      "action": "click",
+      "target": {
+        "role": "button",
+        "name": "Cart, 1 items",
+        "testId": "shopping-cart-link",
+        "text": "1",
+        "css": "#shopping_cart_container > a",
+        "fallbackOrder": [
+          "testId",
+          "text",
+          "css",
+          "role"
+        ]
+      },
+      "locatorReasoning": "The Sauce Labs Backpack has been successfully added to the cart - I can see the cart now shows \"Cart, 1 items\" and the Add to cart button changed to Remove. Now I need to proceed to checkout by clicking on the cart button.",
+      "expected": []
+    },
+    {
+      "id": "step-6-click",
+      "action": "click",
+      "target": {
+        "role": "button",
+        "name": "Checkout",
+        "testId": "checkout",
+        "text": "Checkout",
+        "css": "#checkout",
+        "fallbackOrder": [
+          "role",
+          "testId",
+          "text",
+          "css"
+        ]
+      },
+      "locatorReasoning": "I'm now on the cart page which shows the Sauce Labs Backpack with a price of $29.99. I need to proceed to checkout by clicking the Checkout button.",
+      "expected": []
+    },
+    {
+      "id": "step-7-type",
+      "action": "type",
+      "target": {
+        "role": "textbox",
+        "name": "First Name",
+        "testId": "firstName",
+        "css": "#first-name",
+        "fallbackOrder": [
+          "role",
+          "testId",
+          "css"
+        ]
+      },
+      "value": {
+        "kind": "param",
+        "param": "firstName"
+      },
+      "locatorReasoning": "I'm now on the checkout information page. I need to fill in the shipping information starting with the first name field. I'll enter \"Ada\" as specified in the example values.",
+      "expected": []
+    },
+    {
+      "id": "step-8-type",
+      "action": "type",
+      "target": {
+        "role": "textbox",
+        "name": "Last Name",
+        "testId": "lastName",
+        "css": "#last-name",
+        "fallbackOrder": [
+          "role",
+          "testId",
+          "css"
+        ]
+      },
+      "value": {
+        "kind": "param",
+        "param": "lastName"
+      },
+      "locatorReasoning": "First name \"Ada\" has been entered successfully. Now I need to fill in the last name field with \"Lovelace\".",
+      "expected": []
+    },
+    {
+      "id": "step-9-type",
+      "action": "type",
+      "target": {
+        "role": "textbox",
+        "name": "Zip/Postal Code",
+        "testId": "postalCode",
+        "css": "#postal-code",
+        "fallbackOrder": [
+          "role",
+          "testId",
+          "css"
+        ]
+      },
+      "value": {
+        "kind": "param",
+        "param": "postalCode"
+      },
+      "locatorReasoning": "Last name \"Lovelace\" has been entered successfully. Now I need to fill in the postal code field with \"94107\".",
+      "expected": []
+    },
+    {
+      "id": "step-10-click",
+      "action": "click",
+      "target": {
+        "role": "button",
+        "name": "Continue",
+        "testId": "continue",
+        "css": "#continue",
+        "fallbackOrder": [
+          "role",
+          "testId",
+          "css"
+        ]
+      },
+      "locatorReasoning": "All shipping information has been filled in successfully: First Name \"Ada\", Last Name \"Lovelace\", and Postal Code \"94107\". Now I need to click the Continue button to proceed to the checkout overview page.",
+      "expected": []
+    }
+  ],
+  "checkpoint": {
+    "description": "Reached https://www.saucedemo.com/checkout-step-two.html after completing: \"Log in, add the Sauce Labs Backpack to the cart, proceed to checkout, fill in the shipping information, and reach the checkout overview (review) page showing the order total.\" (auto-derived — review before approving this capability).",
+    "assertion": {
+      "kind": "urlContains",
+      "value": "/checkout-step-two.html"
+    }
+  },
+  "policy": {
+    "riskLevel": "safe",
+    "requiresApproval": false
+  },
+  "status": "draft"
+}

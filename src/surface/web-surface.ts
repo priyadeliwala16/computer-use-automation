@@ -1,6 +1,8 @@
-import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
-import type { ActionResult, Observation, Surface, SurfaceAction, SnapshotNode } from "./types.js";
+import net from "node:net";
+import { chromium, type Browser, type BrowserContext, type Locator, type Page } from "playwright";
+import type { ActionResult, ActionTarget, Observation, Surface, SurfaceAction, SnapshotNode } from "./types.js";
 import { collectSnapshotNodes, type RawSnapshotNode } from "./browser-snapshot-script.js";
+import { resolveLocator } from "./locator.js";
 
 const MAX_SNAPSHOT_NODES = 150;
 const DEFAULT_TIMEOUT_MS = 10_000;
@@ -19,10 +21,46 @@ export interface WebSurfaceOptions {
   headless?: boolean;
   /** If set, navigates here immediately after launch. */
   startUrl?: string;
+  /**
+   * Opens a Chrome DevTools Protocol debugging port on this browser instance (via
+   * `--remote-debugging-port`), so a *second, independent process* can attach to it later with
+   * `chromium.connectOverCDP(cdpEndpoint)`. That's a genuinely separate connection into the same
+   * running browser — Playwright's own `browser.connect()` (as opposed to `connectOverCDP`) was
+   * tried first here and rejected: each `connect()` call gets an isolated view and simply
+   * cannot see contexts/pages created by a different connection, which defeats the entire point.
+   * `connectOverCDP` does — see tests/integration/hitl-handoff.test.ts, which proves this
+   * against a real browser rather than assuming it. This is the mechanism the HITL operator
+   * handoff (§3.6, see src/hitl/) depends on: a human operator CLI attaches to the SAME session
+   * an escalated discovery run is paused on, and its actions are visible on the exact same live
+   * page, not a disconnected copy. Off by default (adds a debugging port + one free-port probe
+   * at launch, for no benefit to a run that never escalates) — only `discover` turns it on;
+   * `replay` (which never hands off to a human) has no reason to.
+   */
+  enableRemoteControl?: boolean;
+  /** Milliseconds Playwright pauses after every low-level browser operation (not just once per
+   *  replay/discovery step) — purely a human-watchability knob for a headed demo run, with zero
+   *  effect on correctness. Unset/0 means "as fast as the browser and network allow," which is
+   *  what every automated test and any unattended replay wants. */
+  slowMoMs?: number;
 }
 
 function refSelector(ref: string): string {
   return `[data-cua-ref="${ref}"]`;
+}
+
+/** Asks the OS for a free TCP port by briefly binding to port 0, then releasing it. There is an
+ *  inherent, unavoidable TOCTOU race between this returning and Chromium actually binding to
+ *  the same port (something else could grab it first) — acceptable for a localhost dev/demo
+ *  tool talking to itself; not something a production service would rely on. */
+async function findFreePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const probe = net.createServer();
+    probe.once("error", reject);
+    probe.listen(0, "127.0.0.1", () => {
+      const { port } = probe.address() as net.AddressInfo;
+      probe.close(() => resolve(port));
+    });
+  });
 }
 
 /**
@@ -50,14 +88,21 @@ export class WebSurface implements Surface {
     private readonly page: Page,
     private readonly context: BrowserContext,
     private readonly browser: Browser,
+    private readonly cdpPort?: number,
   ) {}
 
   static async launch(options: WebSurfaceOptions = {}): Promise<WebSurface> {
-    const browser = await chromium.launch({ headless: options.headless ?? false });
+    const headless = options.headless ?? false;
+    const cdpPort = options.enableRemoteControl ? await findFreePort() : undefined;
+    const browser = await chromium.launch({
+      headless,
+      slowMo: options.slowMoMs,
+      args: cdpPort !== undefined ? [`--remote-debugging-port=${cdpPort}`] : [],
+    });
     const context = await browser.newContext();
     const page = await context.newPage();
     await page.addInitScript(installNameHelperShim);
-    const surface = new WebSurface(page, context, browser);
+    const surface = new WebSurface(page, context, browser, cdpPort);
     if (options.startUrl) {
       await surface.act({ type: "navigate", url: options.startUrl });
     }
@@ -65,13 +110,19 @@ export class WebSurface implements Surface {
   }
 
   /**
-   * Escape hatch exposing the raw Playwright page. Only two things in this codebase are allowed
-   * to use it: evidence capture (screenshots/DOM dumps, which need Playwright's native APIs) and
-   * the HITL operator handoff (which must drive the literal same session a human can also see).
-   * Everything else — the agent loop, the replay executor — depends only on `Surface`.
+   * Escape hatch exposing the raw Playwright page, for evidence capture (screenshots/DOM dumps,
+   * which need Playwright's native APIs) — the only consumer allowed to use it. Everything else
+   * — the agent loop, the replay executor — depends only on `Surface`.
    */
   get rawPage(): Page {
     return this.page;
+  }
+
+  /** The CDP HTTP endpoint a second, independent process can `chromium.connectOverCDP()` to, to
+   *  attach to this exact live browser instance. Only set when launched with
+   *  `enableRemoteControl: true` — see that option's doc comment for why it exists. */
+  get cdpEndpoint(): string | undefined {
+    return this.cdpPort !== undefined ? `http://127.0.0.1:${this.cdpPort}` : undefined;
   }
 
   async observe(): Promise<Observation> {
@@ -103,14 +154,14 @@ export class WebSurface implements Surface {
           return { ok: true };
 
         case "click": {
-          const locator = this.page.locator(refSelector(action.ref));
+          const locator = await this.resolveTarget(action.target);
           await locator.waitFor({ state: "visible", timeout: DEFAULT_TIMEOUT_MS });
           await this.actAndSettle(() => locator.click({ timeout: DEFAULT_TIMEOUT_MS }));
           return { ok: true };
         }
 
         case "type": {
-          const locator = this.page.locator(refSelector(action.ref));
+          const locator = await this.resolveTarget(action.target);
           await locator.waitFor({ state: "visible", timeout: DEFAULT_TIMEOUT_MS });
           if (action.clear ?? true) await locator.fill("");
           await this.actAndSettle(() => locator.fill(action.text));
@@ -118,7 +169,7 @@ export class WebSurface implements Surface {
         }
 
         case "select": {
-          const locator = this.page.locator(refSelector(action.ref));
+          const locator = await this.resolveTarget(action.target);
           await locator.waitFor({ state: "visible", timeout: DEFAULT_TIMEOUT_MS });
           await this.actAndSettle(async () => {
             await locator.selectOption(action.value);
@@ -127,17 +178,16 @@ export class WebSurface implements Surface {
         }
 
         case "extract": {
-          const locator = this.page.locator(refSelector(action.ref));
+          const locator = await this.resolveTarget(action.target);
           await locator.waitFor({ state: "visible", timeout: DEFAULT_TIMEOUT_MS });
           const value = (await locator.textContent())?.trim() ?? "";
           return { ok: true, extractedValue: value };
         }
 
         case "waitFor": {
-          if (action.ref) {
-            await this.page
-              .locator(refSelector(action.ref))
-              .waitFor({ state: "visible", timeout: action.ms ?? DEFAULT_TIMEOUT_MS });
+          if (action.target) {
+            const locator = await this.resolveTarget(action.target);
+            await locator.waitFor({ state: "visible", timeout: action.ms ?? DEFAULT_TIMEOUT_MS });
           } else {
             await this.page.waitForTimeout(action.ms ?? 1000);
           }
@@ -152,6 +202,16 @@ export class WebSurface implements Surface {
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
     }
+  }
+
+  /** Resolves either addressing mode to a concrete, currently-live Playwright `Locator`. See the
+   *  `ActionTarget` doc comment in src/surface/types.ts for why there are two modes. */
+  private async resolveTarget(target: ActionTarget): Promise<Locator> {
+    if (target.kind === "ref") {
+      return this.page.locator(refSelector(target.ref));
+    }
+    const { locator } = await resolveLocator(this.page, target.locator);
+    return locator;
   }
 
   async screenshot(): Promise<Buffer> {

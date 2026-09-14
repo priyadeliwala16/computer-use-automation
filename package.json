@@ -9,6 +9,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "demo": "tsx src/cli/replay.ts --capability-id saucedemo.add_item_and_checkout --artifacts-dir tests/fixtures --param username=standard_user --param password=secret_sauce --redact password --param firstName=Ada --param lastName=Lovelace --param postalCode=94107 --slow-mo-ms 400",
     "discover": "tsx src/cli/discover.ts",
     "replay": "tsx src/cli/replay.ts",
     "operator": "tsx src/hitl/operator-cli.ts",
@@ -33,5 +34,11 @@
     "tsx": "^4.19.0",
     "typescript": "^5.5.4",
     "vitest": "^2.1.1"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "esbuild@0.21.5": true,
+    "fsevents@2.3.2": true,
+    "fsevents@2.3.3": true
   }
 }

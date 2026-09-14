@@ -24,7 +24,7 @@ against `claude-sonnet-4-5-20250929` (see
 [`evidence/discovery-run/`](./evidence/discovery-run/README.md), which also documents a real
 secret-redaction bug that run caught and the fix for it). The agent loop, artifact schema,
 deterministic replay with full error-taxonomy handling, safety guardrails, evidence capture, and
-the HITL escalation/handoff mechanism are all built and covered by 73 automated tests (unit +
+the HITL escalation/handoff mechanism are all built and covered by 75 automated tests (unit +
 integration against a real browser).
 
 ## Requirements
@@ -160,7 +160,7 @@ process attaches → resume → run completes pipeline.
 ```bash
 npm run typecheck
 npm run lint
-npm run test          # 73 tests: unit (fast, mocked) + integration (real browser, real target)
+npm run test          # 75 tests: unit (fast, mocked) + integration (real browser, real target)
 ```
 
 Integration tests launch a real Chromium instance against the live saucedemo.com — no network

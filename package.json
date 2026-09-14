@@ -34,11 +34,5 @@
     "tsx": "^4.19.0",
     "typescript": "^5.5.4",
     "vitest": "^2.1.1"
-  },
-  "allowScripts": {
-    "esbuild@0.28.2": true,
-    "esbuild@0.21.5": true,
-    "fsevents@2.3.2": true,
-    "fsevents@2.3.3": true
   }
 }

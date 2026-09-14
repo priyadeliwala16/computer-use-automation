@@ -1,20 +1,16 @@
 #!/usr/bin/env tsx
 import { randomUUID } from "node:crypto";
-import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Command } from "commander";
-import { env } from "../config/env.js";
-import { loadAllowlistConfig, AllowlistPolicy } from "../config/allowlist.js";
-import { WebSurface } from "../surface/web-surface.js";
 import { GuardedSurface } from "../safety/guarded-surface.js";
 import { redactSensitiveValues, type RedactableValue } from "../safety/redaction.js";
 import { ArtifactStore } from "../artifact/store.js";
+import { loadAllowlistConfig, AllowlistPolicy } from "../config/allowlist.js";
 import type { CapabilityArtifact, PrimitiveType } from "../artifact/schema.js";
 import { ReplayExecutor, type ReplayParams, type StepLogEvent } from "../replay/executor.js";
 import { ReplayInputValidationError, UnapprovedRiskyArtifactError } from "../replay/outcomes.js";
 import type { ReplayResult } from "../replay/outcomes.js";
-import { JsonlLogger } from "../evidence/jsonl-logger.js";
-import { ScreenshotEvidenceSink } from "../evidence/screenshot-sink.js";
+import { collect, createEvidenceBundle, launchWebSurface, parseKeyValueParams, parseRedactNames } from "./cli-shared.js";
 
 /**
  * `replay`: the production execution path (§3.3) — re-runs a saved `CapabilityArtifact` with no
@@ -31,24 +27,12 @@ import { ScreenshotEvidenceSink } from "../evidence/screenshot-sink.js";
  *   3 business_outcome    — a legitimate, anticipated non-happy-path result (not a bug).
  */
 
-function collect(value: string, previous: string[]): string[] {
-  return previous.concat([value]);
-}
-
 /** Splits `--param name=value` flags into a raw string map — coercion into the artifact's
  *  declared input types happens separately in `coerceParams`, once we know what those types
- *  are. Exported for unit testing. */
-export function parseRawParams(rawParams: string[]): Record<string, string> {
-  const result: Record<string, string> = {};
-  for (const raw of rawParams) {
-    const eq = raw.indexOf("=");
-    if (eq <= 0) {
-      throw new Error(`--param "${raw}" is not in the form name=value`);
-    }
-    result[raw.slice(0, eq)] = raw.slice(eq + 1);
-  }
-  return result;
-}
+ *  are. A thin, name-preserving re-export of `cli-shared.ts`'s `parseKeyValueParams` (exported
+ *  under this name for unit testing — tests/unit/replay-cli.test.ts imports it as
+ *  `parseRawParams`). */
+export const parseRawParams = parseKeyValueParams;
 
 function coercePrimitive(value: string, type: PrimitiveType): string | number | boolean {
   if (type === "number") {
@@ -121,7 +105,7 @@ async function main(): Promise<void> {
     : await store.loadLatest(options.capabilityId);
 
   const rawParams = parseRawParams(options.param);
-  const redactNames = new Set(options.redact.split(",").map((s) => s.trim()).filter(Boolean));
+  const redactNames = parseRedactNames(options.redact);
   const params = coerceParams(rawParams, artifact);
   // Shared with logTurn-equivalent logging below, exactly like discover.ts's paramHints: every
   // console/JSONL line derived from a step result is passed through this before being written.
@@ -143,10 +127,7 @@ async function main(): Promise<void> {
 
   const allowlistConfig = loadAllowlistConfig();
   const policy = new AllowlistPolicy(allowlistConfig);
-  const rawSurface = await WebSurface.launch({
-    headless: options.headless ?? env.PLAYWRIGHT_HEADLESS,
-    slowMoMs: options.slowMoMs !== undefined ? Number(options.slowMoMs) : undefined,
-  });
+  const rawSurface = await launchWebSurface({ headless: options.headless, slowMoMs: options.slowMoMs });
   // An approved artifact is trusted to perform whatever it recorded, including a step that
   // happens to match a risky-control heuristic (e.g. clicking "Finish") — that trust decision
   // was made once, by a human, at approval time (see artifact.status and §8's confidence/approval
@@ -156,9 +137,7 @@ async function main(): Promise<void> {
   const surface = new GuardedSurface(rawSurface, policy, { allowRiskyActions: artifact.status === "approved" });
 
   const runId = options.runId ?? randomUUID();
-  const bundleDir = path.join(options.evidenceDir, runId);
-  const jsonlLogger = new JsonlLogger(path.join(bundleDir, "log.jsonl"));
-  const screenshotSink = new ScreenshotEvidenceSink(surface, bundleDir);
+  const { bundleDir, jsonlLogger, screenshotSink } = createEvidenceBundle(options.evidenceDir, runId, surface);
   console.log(`[replay] run id: ${runId} (evidence -> ${bundleDir})`);
 
   const onStep = async (event: StepLogEvent): Promise<void> => {

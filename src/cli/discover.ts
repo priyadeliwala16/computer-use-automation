@@ -6,7 +6,6 @@ import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import { env, requireAnthropicApiKey } from "../config/env.js";
 import { loadAllowlistConfig, AllowlistPolicy } from "../config/allowlist.js";
-import { WebSurface } from "../surface/web-surface.js";
 import { GuardedSurface } from "../safety/guarded-surface.js";
 import { redactSensitiveValues } from "../safety/redaction.js";
 import { ClaudeAgentClient } from "../agent/claude-client.js";
@@ -15,9 +14,8 @@ import type { ParamHint } from "../agent/prompt.js";
 import type { RunTraceTurn } from "../agent/run-trace.js";
 import { ArtifactStore } from "../artifact/store.js";
 import { recordArtifact } from "../artifact/recorder.js";
-import { JsonlLogger } from "../evidence/jsonl-logger.js";
-import { ScreenshotEvidenceSink } from "../evidence/screenshot-sink.js";
 import { ControlLock } from "../hitl/control-lock.js";
+import { collect, createEvidenceBundle, launchWebSurface, parseRedactNames, splitParamFlag } from "./cli-shared.js";
 
 const DEFAULT_ESCALATION_TIMEOUT_MS = 10 * 60 * 1000;
 
@@ -53,18 +51,9 @@ function describeTurnWithOutcome(turn: RunTraceTurn, paramHints: ParamHint[]): s
 
 function parseParams(rawParams: string[], redactNames: Set<string>): ParamHint[] {
   return rawParams.map((raw) => {
-    const eq = raw.indexOf("=");
-    if (eq <= 0) {
-      throw new Error(`--param "${raw}" is not in the form name=value`);
-    }
-    const name = raw.slice(0, eq);
-    const value = raw.slice(eq + 1);
+    const [name, value] = splitParamFlag(raw);
     return { name, value, redact: redactNames.has(name) };
   });
-}
-
-function collect(value: string, previous: string[]): string[] {
-  return previous.concat([value]);
 }
 
 async function main(): Promise<void> {
@@ -124,7 +113,7 @@ async function main(): Promise<void> {
   const allowlistConfig = loadAllowlistConfig();
   const policy = new AllowlistPolicy(allowlistConfig);
 
-  const redactNames = new Set(options.redact.split(",").map((s) => s.trim()).filter(Boolean));
+  const redactNames = parseRedactNames(options.redact);
   const paramHints = parseParams(options.param, redactNames);
 
   const target = { app: options.app ?? allowlistConfig.app, baseUrl: env.TARGET_BASE_URL };
@@ -137,10 +126,10 @@ async function main(): Promise<void> {
 
   // enableRemoteControl is tied 1:1 to --hitl: it's the only reason a second process would ever
   // need to attach to this exact browser (see WebSurface's doc comment on the option).
-  const rawSurface = await WebSurface.launch({
-    headless: options.headless ?? env.PLAYWRIGHT_HEADLESS,
+  const rawSurface = await launchWebSurface({
+    headless: options.headless,
+    slowMoMs: options.slowMoMs,
     enableRemoteControl: options.hitl,
-    slowMoMs: options.slowMoMs !== undefined ? Number(options.slowMoMs) : undefined,
   });
   // allowRiskyActions is deliberately omitted (defaults to false): an autonomous discovery run
   // has no prior human sign-off, so a click matching a risky-control rule (e.g. "Finish Order")
@@ -152,9 +141,7 @@ async function main(): Promise<void> {
   // directory name and the RunTrace's own runId are the same value — one correlation key, not
   // two — see DiscoveryLoopOptions.runId's doc comment in src/agent/loop.ts.
   const runId = randomUUID();
-  const bundleDir = path.join(options.evidenceDir, runId);
-  const jsonlLogger = new JsonlLogger(path.join(bundleDir, "log.jsonl"));
-  const screenshotSink = new ScreenshotEvidenceSink(surface, bundleDir);
+  const { bundleDir, jsonlLogger, screenshotSink } = createEvidenceBundle(options.evidenceDir, runId, surface);
   console.log(`[discover] run id: ${runId} (evidence -> ${bundleDir})`);
 
   // Every field logged below — to the console AND to log.jsonl — flows through

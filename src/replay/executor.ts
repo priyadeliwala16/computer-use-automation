@@ -8,9 +8,9 @@ import type {
 } from "../artifact/schema.js";
 import type { LocatorSpec } from "../surface/locator.js";
 import type { ActionResult, Surface } from "../surface/types.js";
-import type { EvidenceSink} from "../evidence/types.js";
+import type { EvidenceSink } from "../evidence/types.js";
 import { NullEvidenceSink } from "../evidence/types.js";
-import type { ReplayResult} from "./outcomes.js";
+import type { ReplayResult } from "./outcomes.js";
 import { ReplayInputValidationError, UnapprovedRiskyArtifactError } from "./outcomes.js";
 
 export type ReplayParams = Record<string, string | number | boolean>;
